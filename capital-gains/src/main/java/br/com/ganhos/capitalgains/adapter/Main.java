@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @SpringBootApplication
@@ -29,7 +30,7 @@ public class Main {
                 List<Operation> operations = InputReader.readOperationsFromResource("input.json");
 
                 // Calcula os impostos
-                List<Double> taxes = calculateTaxUseCase.calculateTaxes(operations);
+                List<BigDecimal> taxes = calculateTaxUseCase.calculateTaxes(operations);
 
                 System.out.println("Resultado dos impostos calculados:");
                 OutputWriter.writeTaxes(taxes);

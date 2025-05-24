@@ -4,65 +4,75 @@ import br.com.ganhos.capitalgains.domain.model.Operation;
 import br.com.ganhos.capitalgains.domain.model.OperationType;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class CalculateTaxUseCase {
 
-    public List<Double> calculateTaxes(List<Operation> operations) {
-        List<Double> taxes = new ArrayList<>();
-        double totalShares = 0;
-        double totalCost = 0;
-        double lossToCompensate = 0;
+    private static final BigDecimal TAX_RATE = new BigDecimal("0.20");
+    private static final BigDecimal EXEMPTION_LIMIT = new BigDecimal("20000");
+
+    public List<BigDecimal> calculateTaxes(List<Operation> operations) {
+        List<BigDecimal> taxes = new ArrayList<>();
+        BigDecimal totalShares = BigDecimal.ZERO;
+        BigDecimal totalCost = BigDecimal.ZERO;
+        BigDecimal lossToCompensate = BigDecimal.ZERO;
 
         for (Operation op : operations) {
             if (op.getType() == OperationType.BUY) {
-                // Atualiza custo total e quantidade
-                totalCost += op.getUnitCost() * op.getQuantity();
-                totalShares += op.getQuantity();
-                taxes.add(0.0);  // não paga imposto na compra
-            } else if (op.getType() == OperationType.SELL) {
-                // Calcula preço médio
-                double avgPrice = totalShares > 0 ? totalCost / totalShares : 0;
-                // Calcula lucro da operação
-                double profit = op.getQuantity() * (op.getUnitCost() - avgPrice);
+                BigDecimal quantity = BigDecimal.valueOf(op.getQuantity());
+                BigDecimal unitCost = BigDecimal.valueOf(op.getUnitCost());
 
-                if (op.getQuantity() > totalShares) {
-                    // Caso venda maior que ações em carteira - aqui ajusta para não calcular lucro negativo
-                    profit = 0;
+                totalCost = totalCost.add(unitCost.multiply(quantity));
+                totalShares = totalShares.add(quantity);
+
+                taxes.add(BigDecimal.ZERO.setScale(2));
+            } else if (op.getType() == OperationType.SELL) {
+                BigDecimal quantity = BigDecimal.valueOf(op.getQuantity());
+                BigDecimal unitCost = BigDecimal.valueOf(op.getUnitCost());
+
+                if (quantity.compareTo(totalShares) > 0) {
+                    throw new IllegalArgumentException("Venda maior que quantidade em carteira");
                 }
+
+                BigDecimal avgPrice = totalShares.compareTo(BigDecimal.ZERO) > 0
+                        ? totalCost.divide(totalShares, 10, RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO;
+
+                BigDecimal profit = quantity.multiply(unitCost.subtract(avgPrice));
 
                 // Atualiza total de ações e custo após venda
-                totalShares -= op.getQuantity();
-                totalCost = avgPrice * totalShares;
+                totalShares = totalShares.subtract(quantity);
+                totalCost = avgPrice.multiply(totalShares);
 
-                double taxableProfit = profit - lossToCompensate;
-                if (taxableProfit < 0) {
-                    lossToCompensate = -taxableProfit;
-                    taxableProfit = 0;
+                BigDecimal taxableProfit = profit.subtract(lossToCompensate);
+                if (taxableProfit.compareTo(BigDecimal.ZERO) < 0) {
+                    lossToCompensate = taxableProfit.abs();
+                    taxableProfit = BigDecimal.ZERO;
                 } else {
-                    lossToCompensate = 0;
+                    lossToCompensate = BigDecimal.ZERO;
                 }
 
-                // Isenção para vendas até R$ 20.000
-                double saleValue = op.getQuantity() * op.getUnitCost();
-                double tax = 0;
-                if (saleValue > 20000) {
-                    tax = taxableProfit * 0.20;
+                BigDecimal saleValue = quantity.multiply(unitCost);
+                BigDecimal tax = BigDecimal.ZERO;
+
+                if (saleValue.compareTo(EXEMPTION_LIMIT) > 0) {
+                    tax = taxableProfit.multiply(TAX_RATE);
                 }
 
                 taxes.add(round(tax));
             } else {
-                // Caso operação desconhecida, assume zero imposto
-                taxes.add(0.0);
+                taxes.add(BigDecimal.ZERO.setScale(2));
             }
         }
 
         return taxes;
     }
 
-    private double round(double value) {
-        return Math.round(value * 100.0) / 100.0;
+    private BigDecimal round(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP);
     }
 }
