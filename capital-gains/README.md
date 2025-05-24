@@ -40,6 +40,7 @@ Para rodar a aplicação:
     "unitCost": 16.0
   }
 ]
+```
 Observações
 Alterar o input.json e executar novamente permite verificar os cálculos com diferentes operações.
 
