@@ -11,12 +11,10 @@ public class InputReader {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    // Seu método antigo para ler do System.in pode ficar aqui, se quiser
     public static List<Operation> readOperations() throws Exception {
         return mapper.readValue(System.in, new TypeReference<List<Operation>>() {});
     }
 
-    // Novo método para ler do arquivo dentro de resources
     public static List<Operation> readOperationsFromResource(String resourceFileName) throws Exception {
         InputStream is = InputReader.class.getClassLoader().getResourceAsStream(resourceFileName);
         if (is == null) {
