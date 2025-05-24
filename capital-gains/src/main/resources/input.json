@@ -1,0 +1,4 @@
+[
+  { "type": "buy", "quantity": 100, "unitCost": 10.0 },
+  { "type": "sell", "quantity": 50, "unitCost": 500.0 }
+]

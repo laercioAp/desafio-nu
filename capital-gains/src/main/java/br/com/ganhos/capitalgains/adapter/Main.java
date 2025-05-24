@@ -5,12 +5,39 @@ import br.com.ganhos.capitalgains.domain.model.Operation;
 import br.com.ganhos.capitalgains.infrastructure.io.InputReader;
 import br.com.ganhos.capitalgains.infrastructure.io.OutputWriter;
 
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+
 import java.util.List;
 
+@SpringBootApplication
+@ComponentScan(basePackages = "br.com.ganhos.capitalgains")
 public class Main {
+
     public static void main(String[] args) {
-        List<Operation> operations = InputReader.readOperations();
-        List<Double> taxes = new CalculateTaxUseCase().execute(operations);
-        OutputWriter.writeTaxes(taxes);
+        SpringApplication.run(Main.class, args);
+    }
+
+    @Bean
+    public CommandLineRunner runApp(CalculateTaxUseCase calculateTaxUseCase) {
+        return args -> {
+            try {
+                // Lê o JSON do arquivo input.json em src/main/resources
+                List<Operation> operations = InputReader.readOperationsFromResource("input.json");
+
+                // Calcula os impostos
+                List<Double> taxes = calculateTaxUseCase.calculateTaxes(operations);
+
+                System.out.println("Resultado dos impostos calculados:");
+                OutputWriter.writeTaxes(taxes);
+
+            } catch (Exception e) {
+                System.err.println("Erro ao processar operações: " + e.getMessage());
+                e.printStackTrace();
+            }
+        };
     }
 }
